@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {kitchenSchema,saveKitchenSchema} from '../lib/kitchen-schema.ts';
+import {emptyKitchen} from '../dist/sync.js';
+import {seed} from '../dist/seed.js';
+test('demo kitchen and empty new account satisfy database validation',()=>{assert.equal(kitchenSchema.safeParse(seed()).success,true);assert.equal(kitchenSchema.safeParse(emptyKitchen()).success,true);});
+test('unsafe IDs, negative quantities, and invalid dates are rejected',()=>{const data=seed();data.pantry[0].id='x" onclick="oops';assert.equal(kitchenSchema.safeParse(data).success,false);data.pantry[0].id='p1';data.pantry[0].quantity=-1;assert.equal(kitchenSchema.safeParse(data).success,false);data.pantry[0].quantity=1;data.pantry[0].expiry='2026-02-30';assert.equal(kitchenSchema.safeParse(data).success,false);});
+test('cross-recipe references and duplicate slots cannot be written',()=>{const data=seed();data.plan[0].recipeId='someone-elses-recipe';assert.equal(kitchenSchema.safeParse(data).success,false);data.plan[0].recipeId='r1';data.plan.push({...data.plan[0],id:'another'});assert.equal(kitchenSchema.safeParse(data).success,false);});
+test('client cannot set an owner or a revision below zero',()=>{const input={revision:0,state:emptyKitchen(),ownerId:'other-user',householdId:'other-kitchen'};const result=saveKitchenSchema.parse(input);assert.equal('ownerId' in result,false);assert.equal('householdId' in result,false);assert.equal(saveKitchenSchema.safeParse({...input,revision:-1}).success,false);});
+test('history survives recipe deletion and quantity limits are enforced',()=>{const data=emptyKitchen();data.history=[{id:'h',recipeId:'deleted',recipeName:'Family recipe',date:'2026-11-18',servings:2,notes:'Kept forever.'}];assert.equal(kitchenSchema.safeParse(data).success,true);data.custom=[{id:'a',key:'a',name:'Rice',quantity:Infinity,unit:'g',week:'2026-11-16',manual:true}];assert.equal(kitchenSchema.safeParse(data).success,false);});

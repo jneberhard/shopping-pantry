@@ -1,0 +1,14 @@
+outputs/
+node_modules/
+.sites-runtime/
+.sites-checkout/
+*.log
+.env
+.env.*
+!.env.example
+.next/
+public/
+generated/
+.vercel/
+*.tsbuildinfo
+.openai/

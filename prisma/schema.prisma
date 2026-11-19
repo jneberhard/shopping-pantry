@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  household     Household?
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields:[userId],references:[id],onDelete:Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  @@index([userId])
+  @@unique([providerId,accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+  @@map("rate_limits")
+}
+
+// Each account owns one kitchen. Membership/invitations can extend this later.
+model Household {
+  id           String @id @default(cuid())
+  ownerId      String @unique
+  owner        User @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+  name         String @default("Your kitchen")
+  revision     Int @default(0)
+  demo         Boolean @default(false)
+  updatedAt    DateTime @updatedAt
+  pantry       PantryItem[]
+  recipes      Recipe[]
+  meals        PlannedMeal[]
+  history      CookingRecord[]
+  extras       ShoppingExtra[]
+  checks       ShoppingCheck[]
+  @@map("households")
+}
+
+model PantryItem {
+  id          String
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  name        String
+  quantity    Float
+  unit        String
+  category    String
+  location    String
+  expiry      String @default("")
+  position    Int
+  @@id([householdId,id])
+  @@map("pantry_items")
+}
+
+model Recipe {
+  id          String
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  name        String
+  description String @default("")
+  category    String
+  minutes     Int
+  servings    Int
+  image       String @default("")
+  steps       String
+  position    Int
+  ingredients RecipeIngredient[]
+  meals       PlannedMeal[]
+  @@id([householdId,id])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  householdId String
+  recipeId    String
+  recipe      Recipe @relation(fields:[householdId,recipeId],references:[householdId,id],onDelete:Cascade)
+  position    Int
+  name        String
+  quantity    Float
+  unit        String
+  @@id([householdId,recipeId,position])
+  @@map("recipe_ingredients")
+}
+
+model PlannedMeal {
+  id          String
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  recipeId    String
+  recipe      Recipe @relation(fields:[householdId,recipeId],references:[householdId,id],onDelete:Cascade)
+  week        String
+  day         Int
+  slot        String
+  servings    Int
+  position    Int
+  @@id([householdId,id])
+  @@unique([householdId,week,day,slot])
+  @@map("planned_meals")
+}
+
+// Recipe name is retained even when its original recipe is deleted.
+model CookingRecord {
+  id          String
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  recipeId    String
+  recipeName  String
+  mealId      String?
+  date        String
+  servings    Int
+  notes       String @default("")
+  position    Int
+  @@id([householdId,id])
+  @@index([householdId,date])
+  @@map("cooking_records")
+}
+
+model ShoppingExtra {
+  id          String
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  key         String
+  name        String
+  week        String
+  quantity    Float
+  unit        String
+  position    Int
+  @@id([householdId,id])
+  @@unique([householdId,key])
+  @@map("shopping_extras")
+}
+
+model ShoppingCheck {
+  householdId String
+  household   Household @relation(fields:[householdId],references:[id],onDelete:Cascade)
+  key         String
+  @@id([householdId,key])
+  @@map("shopping_checks")
+}

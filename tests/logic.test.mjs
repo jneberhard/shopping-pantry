@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {shoppingList,monday,shiftWeek} from '../dist/logic.js';
+const week='2026-11-16';
+const r={id:'r',servings:2,ingredients:[{name:'Rice',quantity:200,unit:'g'}],name:'Rice bowl'};
+test('aggregates repeated meals before subtracting pantry and scales servings',()=>{const pantry=[{name:' rice ',quantity:.5,unit:'kg'}];const plan=[{week,recipeId:'r',servings:4},{week,recipeId:'r',servings:2}];assert.equal(shoppingList(pantry,[r],plan,week)[0].quantity,100);});
+test('keeps incompatible units separate',()=>{const result=shoppingList([{name:'Rice',quantity:1,unit:'cup'}],[r],[{week,recipeId:'r',servings:2}],week);assert.equal(result[0].quantity,200);});
+test('fully stocked ingredients are omitted and unrelated weeks excluded',()=>{assert.deepEqual(shoppingList([{name:'Rice',quantity:2,unit:'kg'}],[r],[{week,recipeId:'r',servings:2}],week),[]);assert.deepEqual(shoppingList([],[r],[{week:'2026-11-23',recipeId:'r',servings:2}],week),[]);});
+test('purchased shortage eliminates that item from the list',()=>{const plan=[{week,recipeId:'r',servings:2}];const need=shoppingList([],[r],plan,week)[0];assert.deepEqual(shoppingList([need],[r],plan,week),[]);});
+test('volume units convert correctly',()=>{const oil={...r,ingredients:[{name:'Oil',quantity:2,unit:'tbsp'}]};const list=shoppingList([{name:'Oil',quantity:14.7868,unit:'ml'}],[oil],[{week,recipeId:'r',servings:2}],week);assert.ok(Math.abs(list[0].quantity-1)<.0001);});
+test('calendar uses Monday and handles week boundaries',()=>{assert.equal(monday(new Date('2026-11-22T12:00:00')),week);assert.equal(shiftWeek('2026-12-28',1),'2027-01-04');});
