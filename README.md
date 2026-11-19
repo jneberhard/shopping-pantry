@@ -54,7 +54,7 @@ The initial SQL migration is checked in under `prisma/migrations`. `db:migrate` 
 | Variable | Value |
 | --- | --- |
 | `DATABASE_URL` | Neon pooled PostgreSQL connection string |
-| `DIRECT_URL` | Neon direct PostgreSQL connection string, for migration tooling |
+| `DATABASE_URL_UNPOOLED` or `DIRECT_URL` | Neon direct PostgreSQL connection string, for migration tooling; the Vercel integration supplies `DATABASE_URL_UNPOOLED` automatically |
 | `BETTER_AUTH_SECRET` | A generated secret of at least 32 characters |
 | `BETTER_AUTH_URL` | Your exact deployed origin, e.g. `https://your-app.vercel.app` |
 | `RESEND_API_KEY` | Optional; enables password recovery with the sender below |
