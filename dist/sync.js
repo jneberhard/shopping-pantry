@@ -8,6 +8,21 @@ const collections=['pantry','recipes','plan','history','custom'];
 // that was also edited elsewhere always requires an explicit choice.
 export function mergeKitchen(base,local,remote){
   const merged=clone(remote),conflicts=[];
+  // A cooking record and its pantry deductions form one change. Identical stock
+  // totals from two different meals still conflict: merging would under-deduct.
+  const effectChanges=state=>{
+    const before=new Map(base.history.map(h=>[h.id,h])),after=new Map(state.history.map(h=>[h.id,h])),changed=[];
+    for(const id of new Set([...before.keys(),...after.keys()])){
+      const old=before.get(id),next=after.get(id);
+      if(!equal(old?.pantryEffect,next?.pantryEffect))changed.push({id,effect:next?.pantryEffect,items:new Set([...(old?.pantryEffect?.deductions||[]),...(next?.pantryEffect?.deductions||[])].map(d=>d.item.id))});
+    }
+    return changed;
+  };
+  const hereEffects=effectChanges(local),thereEffects=effectChanges(remote);
+  for(const here of hereEffects)for(const there of thereEffects){
+    if(here.id===there.id&&equal(here.effect,there.effect))continue;
+    if([...here.items].some(id=>there.items.has(id)))conflicts.push('Meals made on both devices used the same pantry stock.');
+  }
   for(const collection of collections){
     const before=new Map(base[collection].map(r=>[r.id,r]));
     const here=new Map(local[collection].map(r=>[r.id,r]));
@@ -26,6 +41,7 @@ export function mergeKitchen(base,local,remote){
   merged.demo=local.demo!==base.demo?local.demo:remote.demo;
   const ids=new Set(merged.recipes.map(r=>r.id)),slots=new Set();
   for(const meal of merged.plan){if(!ids.has(meal.recipeId))conflicts.push('A planned recipe was removed on another device.');const slot=`${meal.week}|${meal.day}|${meal.slot}`;if(slots.has(slot))conflicts.push(`Two meals were added to ${meal.slot} on the same day.`);slots.add(slot);}
+  const made=new Set();for(const record of merged.history){if(record.mealId){if(made.has(record.mealId))conflicts.push('The same planned meal was checked off on both devices.');made.add(record.mealId);}}
   return {state:merged,conflicts};
 }
 

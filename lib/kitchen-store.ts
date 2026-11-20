@@ -1,14 +1,14 @@
-import type { Prisma, PrismaClient } from '@/generated/prisma/client';
+import { Prisma, type PrismaClient } from '@/generated/prisma/client';
 import type { KitchenState } from './kitchen-schema';
 
 const include={pantry:{orderBy:{position:'asc'}},recipes:{orderBy:{position:'asc'},include:{ingredients:{orderBy:{position:'asc'}}}},meals:{orderBy:{position:'asc'}},history:{orderBy:{position:'asc'}},extras:{orderBy:{position:'asc'}},checks:true} as const;
 type Loaded=Prisma.HouseholdGetPayload<{include:typeof include}>;
 function snapshot(h:Loaded){
   return {revision:h.revision,householdId:h.id,name:h.name,state:{version:1 as const,demo:h.demo,
-    pantry:h.pantry.map(({id,name,quantity,unit,category,location,expiry})=>({id,name,quantity,unit,category,location,expiry})),
+    pantry:h.pantry.map(({id,name,quantity,unit,category,location,expiry,packageQuantity,packageUnit})=>({id,name,quantity,unit,category,location,expiry,packageQuantity,packageUnit})),
     recipes:h.recipes.map(({id,name,description,category,minutes,servings,image,steps,ingredients})=>({id,name,description,category,minutes,servings,image,steps,ingredients:ingredients.map(({name,quantity,unit})=>({name,quantity,unit}))})),
     plan:h.meals.map(({id,week,day,slot,recipeId,servings})=>({id,week,day,slot,recipeId,servings})),
-    history:h.history.map(({id,recipeId,recipeName,mealId,date,servings,notes})=>({id,recipeId,recipeName,mealId,date,servings,notes})),
+    history:h.history.map(({id,recipeId,recipeName,mealId,date,servings,notes,pantryEffect})=>({id,recipeId,recipeName,mealId,date,servings,notes,pantryEffect})),
     custom:h.extras.map(({id,key,name,week,quantity,unit})=>({id,key,name,week,quantity,unit,manual:true as const})),
     checked:h.checks.map(c=>c.key),
   }};
@@ -36,7 +36,7 @@ export async function saveKitchen(db:PrismaClient,userId:string,revision:number,
     const ingredients=state.recipes.flatMap(r=>r.ingredients.map((i,position)=>({...i,householdId,recipeId:r.id,position})));
     if(ingredients.length)await tx.recipeIngredient.createMany({data:ingredients});
     if(state.plan.length)await tx.plannedMeal.createMany({data:state.plan.map((row,position)=>({...row,householdId,position}))});
-    if(state.history.length)await tx.cookingRecord.createMany({data:state.history.map((row,position)=>({...row,householdId,position}))});
+    if(state.history.length)await tx.cookingRecord.createMany({data:state.history.map((row,position)=>({...row,pantryEffect:row.pantryEffect??Prisma.DbNull,householdId,position}))});
     if(state.custom.length)await tx.shoppingExtra.createMany({data:state.custom.map(({manual,...row},position)=>({...row,householdId,position}))});
     if(state.checked.length)await tx.shoppingCheck.createMany({data:state.checked.map(key=>({householdId,key}))});
     return true;

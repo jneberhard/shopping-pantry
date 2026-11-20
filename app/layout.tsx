@@ -5,5 +5,5 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest', icons: {icon:'/icon.svg'},
 };
 export default function Layout({children}:{children:React.ReactNode}) {
-  return <html lang="en"><head><link rel="stylesheet" href="/style.css"/><link rel="stylesheet" href="/calendar.css"/><link rel="stylesheet" href="/sync.css"/><link rel="stylesheet" href="/login.css"/></head><body>{children}</body></html>;
+  return <html lang="en"><head><link rel="stylesheet" href="/style.css"/><link rel="stylesheet" href="/calendar.css"/><link rel="stylesheet" href="/sync.css"/><link rel="stylesheet" href="/login.css"/><link rel="stylesheet" href="/cooking.css"/></head><body>{children}</body></html>;
 }

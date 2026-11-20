@@ -94,4 +94,20 @@ Tests cover ingredient quantities and conversions, validation boundaries, invali
 
 Browser source remains under `dist/` from the original prototype. `scripts/prepare-public.mjs` copies it into Next.js static assets before development and builds. Restart `pnpm dev` after changing these browser source files. The original standalone `server.mjs` is no longer the application server.
 
-Sample photography is served from Unsplash; fonts and photos need a network connection. Pantry stock is updated by inventory edits and purchased groceries; recording a cooked meal does not automatically consume ingredients.
+Sample photography is served from Unsplash; fonts and photos need a network connection.
+
+## Checking off meals
+
+Pantry quantities support cans, jars, bottles, bags, boxes, packages, cloves, slices, individual items, pounds, ounces, grams, kilograms, and volume units. Packaged items can include an optional size (for example, two 400 g cans). Recipe calculations use that size to convert package quantities to weight or volume. Without a size, a can remains a can and is not assumed to contain a particular weight. Apply the pantry-packages migration for these fields.
+
+The meal planner and calendar day details have a **Meal made** checkbox. Checking it opens a cooking record with a preview of pantry deductions for the servings made. Saving records the meal and subtracts compatible pantry quantities, converting units such as kilograms to grams. Fully consumed items are removed; missing stock is reported and quantities never go negative. Made meals are excluded from the shopping calculation.
+
+Each new cooking record stores its ingredient snapshot and actual deductions. Editing notes or the date never deducts again. Changing servings recalculates its effect; unchecking the meal or deleting its cooking record restores the deducted quantities. Earlier records have no deduction data and are not applied retroactively; their edit form offers an explicit option to update the pantry. Apply the additive cooking-pantry migration before deploying this version.
+
+## Google Calendar and Apple Calendar
+
+On the Calendar screen, choose **Connect a calendar** while signed in. Create a private subscription link, then in Google Calendar on the web choose **Other calendars → + → From URL**, paste the link, and add it. Apple Calendar also supports subscription URLs and the `webcal:` link. See [Google's subscription instructions](https://support.google.com/calendar/answer/37100?hl=en).
+
+Planned meals appear as all-day events with meal type, name, and servings. A made meal gets a check mark; removed plans disappear on the next refresh. The feed follows saved cloud data, so local changes must finish syncing. This is a read-only calendar subscription, not Google OAuth or two-way editing. Refresh timing is controlled by the calendar provider and is not instant. No Google API keys are needed.
+
+Each link is signed for one kitchen and can be replaced or disabled in the app. Anyone possessing the link can read its planned meals; pantry inventory and private notes are excluded. Changing `BETTER_AUTH_SECRET` invalidates existing links. Google and Apple must be able to fetch the deployed feed URL without Vercel's deployment-protection login. Do not disable app sign-in; user kitchen APIs remain session-protected. A localhost URL cannot be fetched by a calendar provider. Apply the calendar-feed migration before deploying this version.

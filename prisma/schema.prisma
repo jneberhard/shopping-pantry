@@ -82,6 +82,7 @@ model Household {
   name         String @default("Your kitchen")
   revision     Int @default(0)
   demo         Boolean @default(false)
+  calendarFeedNonce String?
   updatedAt    DateTime @updatedAt
   pantry       PantryItem[]
   recipes      Recipe[]
@@ -102,6 +103,8 @@ model PantryItem {
   category    String
   location    String
   expiry      String @default("")
+  packageQuantity Float?
+  packageUnit String?
   position    Int
   @@id([householdId,id])
   @@map("pantry_items")
@@ -164,6 +167,7 @@ model CookingRecord {
   date        String
   servings    Int
   notes       String @default("")
+  pantryEffect Json?
   position    Int
   @@id([householdId,id])
   @@index([householdId,date])
